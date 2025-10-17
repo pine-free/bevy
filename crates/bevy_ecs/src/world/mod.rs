@@ -1156,6 +1156,53 @@ impl World {
         self.spawn_with_caller(bundle, MaybeLocation::caller())
     }
 
+    /// Spawns a singleton [`Entity`] with a given [`Bundle`] of [components](`Component`) and returns
+    /// a corresponding [`EntityWorldMut`], which can be used to add components to the entity or
+    /// retrieve its id. If an entity with _all of the components in the bundle_ already exists,
+    /// then it inserts the new values from the provided bundle and returns the entity's EnttityWorldMut
+    ///
+    /// ```
+    /// use bevy_ecs::{bundle::Bundle, component::Component, world::World};
+    ///
+    /// #[derive(Component)]
+    /// struct Position {
+    ///   x: f32,
+    ///   y: f32,
+    /// }
+    ///
+    /// #[derive(Component)]
+    /// struct Velocity {
+    ///     x: f32,
+    ///     y: f32,
+    /// };
+    ///
+    /// #[derive(Component)]
+    /// struct Name(&'static str);
+    ///
+    /// #[derive(Bundle)]
+    /// struct PhysicsBundle {
+    ///     position: Position,
+    ///     velocity: Velocity,
+    /// }
+    ///
+    /// let mut world = World::new();
+    ///
+    /// // When the bundle is first spawned, the behavior is the same as spawn:
+    /// let entity = world.spawn_single(PhysicsBundle {
+    ///     position: Position { x: 2.0, y: 2.0 },
+    ///     velocity: Velocity { x: 0.0, y: 4.0 },
+    /// }).id();
+    /// let position = world.entity(entity).get::<Position>().unwrap();
+    /// assert_eq!(position.x, 2.0);
+    ///
+    /// // When the entity with such bundle already exists, we can use
+    /// // it to replace the values in the new bundle without spawning a new instance
+    ///
+    /// let second_entity = world.spawn_single(Velocity { x: -1.0, y: 1.0 }).id();
+    /// assert_eq!(second_entity, entity);
+    /// let velocity = world.entity(entity).get::<Velocity>().unwrap();
+    /// assert_eq!(velocity.x, -1.0);
+    /// ```
     #[track_caller]
     pub fn spawn_single<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {
         let components = Vec::from_iter(
