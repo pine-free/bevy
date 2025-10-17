@@ -1202,6 +1202,19 @@ impl World {
     /// assert_eq!(second_entity, entity);
     /// let velocity = world.entity(entity).get::<Velocity>().unwrap();
     /// assert_eq!(velocity.x, -1.0);
+    ///
+    /// // However, if the bundle has components that are not present in any other entity,
+    /// // then a new entity will be created
+    ///
+    /// let third_entity = world.spawn_single((
+    ///     PhysicsBundle {
+    ///         position: Position { x: 2.0, y: 2.0 },
+    ///         velocity: Velocity { x: 0.0, y: 4.0 },
+    ///     },
+    ///     Name("Jeane Singlespawner")
+    /// )).id();
+    ///
+    /// assert_ne!(entity, third_entity);
     /// ```
     #[track_caller]
     pub fn spawn_single<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {
