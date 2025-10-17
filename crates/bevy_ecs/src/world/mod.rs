@@ -48,7 +48,7 @@ use crate::{
     message::{Message, MessageId, Messages, WriteBatchIds},
     observer::Observers,
     prelude::{Add, Despawn, Insert, Remove, Replace},
-    query::{DebugCheckedUnwrap, QueryData, QueryFilter, QueryState},
+    query::{DebugCheckedUnwrap, QueryBuilder, QueryData, QueryFilter, QueryState},
     relationship::RelationshipHookMode,
     resource::Resource,
     schedule::{Schedule, ScheduleLabel, Schedules},
@@ -1154,6 +1154,28 @@ impl World {
     pub fn spawn<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {
         move_as_ptr!(bundle);
         self.spawn_with_caller(bundle, MaybeLocation::caller())
+    }
+
+    #[track_caller]
+    pub fn spawn_single<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {
+        let components = Vec::from_iter(
+            self.register_bundle::<B>()
+                .contributed_components()
+                .iter()
+                .cloned(),
+        );
+
+        let mut q_single = QueryBuilder::<Entity>::new(self);
+        components.iter().for_each(|id| {
+            q_single.with_id(*id);
+        });
+
+        if let Ok(singleton) = q_single.build().single(self) {
+            self.entity_mut(singleton).insert(bundle);
+            self.entity_mut(singleton)
+        } else {
+            self.spawn(bundle)
+        }
     }
 
     pub(crate) fn spawn_with_caller<B: Bundle>(
